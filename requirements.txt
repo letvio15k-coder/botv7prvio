@@ -1,4 +1,4 @@
-python-telegram-bot==20.7
-requests
-Flask
-httpx==0.26.0
+python-telegram-bot[job-queue]==20.7
+requests==2.31.0
+Flask==2.3.3
+numpy==1.26.4
