@@ -15,7 +15,6 @@ BINANCE = "https://data-api.binance.vision"
 CHAT_FILE = "/tmp/chats.txt"
 
 COINS = ["BTC","ETH","SOL","BNB","XRP","ADA","AVAX","DOT","TRX","LINK","NEAR","POL","LTC","BCH","ETC","XLM","UNI","OP","ARB","SUI","APT","FIL","HBAR","TAO","FET","RENDER","WLD","INJ","STX","IMX","SEI","ENA","ONDO","ZEC","HYPE","AAVE","MKR","LDO","ATOM","TIA","EGLD","ALGO","VET","ICP","QNT","FTM","THETA","FLOW","KAVA","ROSE","MNT","STRK","METIS","PENDLE","ENS","CRV","COMP","SNX","DYDX","GMX","1INCH","JUP","PYTH","W","S","AR","GRT","OCEAN","AGIX"]
-COINS = list(dict.fromkeys(COINS))
 
 def load_chats():
     try:
@@ -80,43 +79,23 @@ def scan_all_strategies(interval="4h"):
     for sym in COINS:
         kl=get_klines(sym,interval,100)
         if not kl: continue
-        closes=[float(x[4]) for x in kl]
-        highs=[float(x[2]) for x in kl]
-        lows=[float(x[3]) for x in kl]
-        vols=[float(x[5]) for x in kl]
+        closes=[float(x[4]) for x in kl]; highs=[float(x[2]) for x in kl]; lows=[float(x[3]) for x in kl]; vols=[float(x[5]) for x in kl]
         if len(closes)<60: continue
-        rsi=calc_rsi(closes)
-        mfi=calc_mfi(highs,lows,closes,vols)
-        stoch=calc_stoch(closes,highs,lows)
-        cci=calc_cci(closes,highs,lows)
-        ema20=sum(closes[-20:])/20
-        ema50=sum(closes[-50:])/50
+        rsi=calc_rsi(closes); mfi=calc_mfi(highs,lows,closes,vols); stoch=calc_stoch(closes,highs,lows); cci=calc_cci(closes,highs,lows)
+        ema20=sum(closes[-20:])/20; ema50=sum(closes[-50:])/50
         avg_vol=sum(vols[-21:-1])/20 if len(vols)>21 else vols[-1]
         vol_x=vols[-1]/(avg_vol+1e-9)
-
-        if rsi<30 and ema20>ema50:
-            result["RSI<30"].append((sym,rsi,closes[-1],f"VOL x{vol_x:.1f}"))
-        if mfi<20 and vol_x>1.8:
-            result["MFI_WALE"].append((sym,mfi,closes[-1],f"VOL x{vol_x:.1f}"))
-        if closes[-1]>ema20 and closes[-2]<sum(closes[-21:-1])/20:
-            result["MA20"].append((sym,rsi,closes[-1],""))
-        if stoch<20:
-            result["STOCH"].append((sym,stoch,closes[-1],f"CCI:{cci:.0f}"))
-        body=abs(closes[-1]-float(kl[-1][1]))
-        lower_wick=min(float(kl[-1][1]),closes[-1])-lows[-1]
-        if lower_wick > body*2 and rsi<40:
-            result["WICK"].append((sym,rsi,closes[-1],""))
-        if closes[-1]==max(highs[-20:]):
-            result["BREAKOUT"].append((sym,rsi,closes[-1],f"VOL x{vol_x:.1f}"))
-        if sym in ["AAVE","LDO","ONDO"] and rsi<35:
-            result["AAVE_LDO_ONDO"].append((sym,rsi,closes[-1],""))
-        if cci<-100:
-            result["CCI"].append((sym,cci,closes[-1],f"STO:{stoch:.0f}"))
-        if stoch<22 and mfi<28 and cci<-90 and vol_x>=1.7:
-            result["BOTTOM_VOL"].append((sym,cci,closes[-1],f"STO:{stoch:.0f} MFI:{mfi:.0f} VOL x{vol_x:.1f}"))
-
-    for k in result:
-        result[k]=sorted(result[k], key=lambda x:x[1])[:7]
+        if rsi<30 and ema20>ema50: result["RSI<30"].append((sym,rsi,closes[-1],f"VOL x{vol_x:.1f}"))
+        if mfi<20 and vol_x>1.8: result["MFI_WALE"].append((sym,mfi,closes[-1],f"VOL x{vol_x:.1f}"))
+        if closes[-1]>ema20 and closes[-2]<sum(closes[-21:-1])/20: result["MA20"].append((sym,rsi,closes[-1],""))
+        if stoch<20: result["STOCH"].append((sym,stoch,closes[-1],f"CCI:{cci:.0f}"))
+        body=abs(closes[-1]-float(kl[-1][1])); lower_wick=min(float(kl[-1][1]),closes[-1])-lows[-1]
+        if lower_wick > body*2 and rsi<40: result["WICK"].append((sym,rsi,closes[-1],""))
+        if closes[-1]==max(highs[-20:]): result["BREAKOUT"].append((sym,rsi,closes[-1],f"VOL x{vol_x:.1f}"))
+        if sym in ["AAVE","LDO","ONDO"] and rsi<35: result["AAVE_LDO_ONDO"].append((sym,rsi,closes[-1],""))
+        if cci<-100: result["CCI"].append((sym,cci,closes[-1],f"STO:{stoch:.0f}"))
+        if stoch<22 and mfi<28 and cci<-90 and vol_x>=1.7: result["BOTTOM_VOL"].append((sym,cci,closes[-1],f"STO:{stoch:.0f} MFI:{mfi:.0f} VOL x{vol_x:.1f}"))
+    for k in result: result[k]=sorted(result[k], key=lambda x:x[1])[:7]
     return result
 
 def auto_loop():
@@ -127,18 +106,15 @@ def auto_loop():
             strong=res.get("BOTTOM_VOL",[])
             if strong and CHAT_IDS:
                 msg=f"AUTO {interval} - DAY + VOL NO ({len(strong)}):\n\n"
-                for s,cci,p,extra in strong:
-                    msg+=f"{s} {fmt(p)} {extra}\n"
+                for s,cci,p,extra in strong: msg+=f"{s} {fmt(p)} {extra}\n"
                 for cid in list(CHAT_IDS):
-                    try:
-                        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",json={"chat_id":cid,"text":msg},timeout=10)
+                    try: requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",json={"chat_id":cid,"text":msg},timeout=10)
                     except: pass
 threading.Thread(target=auto_loop, daemon=True).start()
 
 async def start(update:Update,context:ContextTypes.DEFAULT_TYPE):
-    CHAT_IDS.add(update.effective_chat.id)
-    save_chats(CHAT_IDS)
-    await update.message.reply_text("SUPER V7.2 FIXED - 70 COIN\n\n/scan_all - tong hop 4H\n/scan1d - tong hop 1D\n/scan_rsi - RSI<30\n/scan_mfi - MFI Whale\n/scan_ma - MA20\n/scan_stoch - STOCH\n/scan_cci - CCI <-100\n/scan_bottom - DAY + VOL NO\n/scan_wick - Wick Sniper\n/scan_aave - AAVE/LDO/ONDO\n/auto_scan - bat auto 30p\n/stop_auto - tat")
+    CHAT_IDS.add(update.effective_chat.id); save_chats(CHAT_IDS)
+    await update.message.reply_text("SUPER V7.2 FIXED - 70 COIN\n/scan_all - 4H\n/scan1d - 1D\n/scan_rsi\n/scan_mfi\n/scan_stoch\n/scan_cci\n/scan_bottom - MANH NHAT\n/scan_wick\n/scan_aave\n/auto_scan\n/stop_auto")
 
 async def scan_cmd(update,ctx, key, interval="4h"):
     await update.message.reply_text(f"Dang quet {key} {interval} 70 coin...")
@@ -146,9 +122,7 @@ async def scan_cmd(update,ctx, key, interval="4h"):
     if key=="ALL":
         msg=f"SUPER V7.2 - {interval}:\n\n"
         for k,v in res.items():
-            if v:
-                names=', '.join([f'{s}' for s,_,_,_ in v])
-                msg+=f"{k}: {names}\n"
+            if v: msg+=f"{k}: {', '.join([f'{s}' for s,_,_,_ in v])}\n"
         await update.message.reply_text(msg or "Khong co keo nao")
         return
     lst=res.get(key, [])
@@ -156,8 +130,7 @@ async def scan_cmd(update,ctx, key, interval="4h"):
         await update.message.reply_text(f"0 keo {key} {interval}")
         return
     msg=f"{key} {interval} ({len(lst)}):\n\n"
-    for s,r,p,extra in lst:
-        msg+=f"{s} {r:.0f} {fmt(p)} {extra} SL:{fmt(p*0.97)} TP:{fmt(p*1.15)}\n\n"
+    for s,r,p,extra in lst: msg+=f"{s} {r:.0f} {fmt(p)} {extra} SL:{fmt(p*0.97)} TP:{fmt(p*1.15)}\n\n"
     await update.message.reply_text(msg)
 
 async def scan_all(update,ctx): await scan_cmd(update,ctx,"ALL","4H")
@@ -174,7 +147,7 @@ async def scan_wick(update,ctx): await scan_cmd(update,ctx,"WICK","4H")
 async def scan_aave(update,ctx): await scan_cmd(update,ctx,"AAVE_LDO_ONDO","4H")
 async def auto_on(update,ctx):
     CHAT_IDS.add(update.effective_chat.id); save_chats(CHAT_IDS)
-    await update.message.reply_text("Da BAT auto 30p - chi bao BOTTOM + VOL NO")
+    await update.message.reply_text("Da BAT auto 30p")
 async def auto_off(update,ctx):
     CHAT_IDS.discard(update.effective_chat.id); save_chats(CHAT_IDS)
     await update.message.reply_text("Da TAT auto")
